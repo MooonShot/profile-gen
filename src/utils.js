@@ -17,11 +17,14 @@ export function genPhone(country, separate) {
   return separate ? { prefix, number: num } : prefix + num
 }
 
-export async function fetchAddresses(bbox, count) {
+const COUNTRY_ISO2 = { FR:'fr', GB:'gb', DE:'de', US:'us', ES:'es', IT:'it', NL:'nl', BE:'be' }
+
+export async function fetchAddresses(bbox, count, country) {
   const placeTypes = ['restaurant', 'cafe', 'hotel', 'school', 'hospital', 'pharmacy', 'supermarket', 'park', 'museum', 'church']
   const results = []
   let attempts = 0
   const [[lonMin, latMin], [lonMax, latMax]] = bbox
+  const countryCode = COUNTRY_ISO2[country] || 'us'
 
   while (results.length < count && attempts < count * 4) {
     attempts++
@@ -31,7 +34,7 @@ export async function fetchAddresses(bbox, count) {
 
     try {
       const res = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${type}.json?proximity=${lon.toFixed(4)},${lat.toFixed(4)}&types=address&limit=5&access_token=${MAPBOX_TOKEN}`
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${type}.json?proximity=${lon.toFixed(4)},${lat.toFixed(4)}&types=address&country=${countryCode}&limit=5&access_token=${MAPBOX_TOKEN}`
       )
       const data = await res.json()
 

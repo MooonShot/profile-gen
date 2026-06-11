@@ -71,7 +71,7 @@ export default function App() {
     try {
       let addresses = []
       if (tab === 0 || tab === 1) {
-        addresses = await fetchAddresses(bbox, count)
+        addresses = await fetchAddresses(bbox, count, country)
         setStatus(`Got ${addresses.length} real addresses`)
       }
 
