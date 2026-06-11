@@ -1,6 +1,6 @@
 import { useState, lazy, Suspense } from 'react'
 import { TABS, TAB_DESCS, COUNTRIES, DEFAULT_BBOX } from './data.js'
-import { buildProfile, fetchAddresses, downloadCSV } from './utils.js'
+import { buildProfile, fetchAddresses, downloadCSV, profilesToAYCD } from './utils.js'
 import PreviewTable from './PreviewTable.jsx'
 
 const MapPicker = lazy(() => import('./MapPicker.jsx'))
@@ -44,8 +44,26 @@ export default function App() {
   const [showPreview, setShowPreview] = useState(false)
   const [totalGenerated, setTotalGenerated] = useState(0)
 
+  const [godMode, setGodMode] = useState(false)
+  const [showGodInput, setShowGodInput] = useState(false)
+  const [godCode, setGodCode] = useState('')
+  const [godError, setGodError] = useState(false)
+
+  function attemptGodMode() {
+    if (godCode.trim() === 'JATTUSGOAT') {
+      setGodMode(true)
+      setShowGodInput(false)
+      setGodError(false)
+      setGodCode('')
+    } else {
+      setGodError(true)
+      setTimeout(() => setGodError(false), 1500)
+    }
+  }
+
   async function generate() {
-    const count = Math.min(Math.max(1, parseInt(qty) || 50), 500)
+    const limit = godMode ? 5000 : 500
+    const count = Math.min(Math.max(1, parseInt(qty) || 50), limit)
     const bbox = mapArea?.bbox || DEFAULT_BBOX[country]
     setLoading(true)
     setStatus('Fetching addresses from Mapbox...')
@@ -78,14 +96,68 @@ export default function App() {
     downloadCSV(profiles, `${lbl}_${country}_${profiles.length}.csv`)
   }
 
+  function handleAYCDDownload() {
+    const lbl = label || 'profiles'
+    const csv = profilesToAYCD(profiles, country)
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${lbl}_${country}_${profiles.length}_aycd.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   const usagePct = Math.min(100, (totalGenerated / 100000) * 100)
 
   return (
     <div style={{ minHeight: '100vh', paddingBottom: 60 }}>
       {/* Header */}
       <div style={{ background: '#0d0d14', borderBottom: '1px solid #1a1a2e', padding: '16px 24px' }}>
-        <div style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-0.3px', color: '#e8e8f0' }}>Profile Generator</div>
-        <div style={{ fontSize: 12, color: '#555', marginTop: 2 }}>Generate profiles using real Mapbox geocoded addresses</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-0.3px', color: '#e8e8f0' }}>Profile Generator</div>
+            <div style={{ fontSize: 12, color: '#555', marginTop: 2 }}>Generate profiles using real Mapbox geocoded addresses</div>
+          </div>
+          <button
+            onClick={() => godMode ? setGodMode(false) : setShowGodInput(p => !p)}
+            style={{
+              background: godMode ? 'linear-gradient(135deg,#ff6a00,#e02020)' : '#0d0d14',
+              border: `1px solid ${godMode ? '#ff6a00' : '#2a2a3e'}`,
+              borderRadius: 6, padding: '7px 14px', cursor: 'pointer', fontSize: 12,
+              color: godMode ? '#fff' : '#555', fontWeight: godMode ? 700 : 400,
+              letterSpacing: godMode ? '0.5px' : 0,
+            }}
+          >
+            {godMode ? '⚡ GOD MODE' : '🔒 God Mode'}
+          </button>
+        </div>
+
+        {/* God mode input */}
+        {showGodInput && !godMode && (
+          <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
+            <input
+              type="password"
+              placeholder="Enter code..."
+              value={godCode}
+              onChange={e => setGodCode(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && attemptGodMode()}
+              autoFocus
+              style={{
+                background: godError ? '#1a0808' : '#0a0a10',
+                border: `1px solid ${godError ? '#e02020' : '#2a2a3e'}`,
+                borderRadius: 4, padding: '7px 12px', color: '#d0d0e0',
+                fontSize: 13, fontFamily: 'monospace', width: 200,
+                transition: 'border-color .2s',
+              }}
+            />
+            <button onClick={attemptGodMode} style={{ background: '#e02020', border: 'none', borderRadius: 4, padding: '7px 16px', color: '#fff', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>
+              Unlock
+            </button>
+            {godError && <span style={{ fontSize: 12, color: '#e02020', fontFamily: 'monospace' }}>Invalid code</span>}
+          </div>
+        )}
+
         <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ flex: 1, height: 4, background: '#1a1a2e', borderRadius: 2, overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${usagePct}%`, background: '#e02020', borderRadius: 2, transition: 'width .4s' }} />
@@ -149,8 +221,10 @@ export default function App() {
         {/* Form */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
           <div>
-            <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 5 }}>Quantity (max 500)</label>
-            <input type="number" min={1} max={500} value={qty} onChange={e => setQty(e.target.value)} style={s.input} />
+            <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 5 }}>
+              Quantity {godMode ? <span style={{ color: '#ff6a00', fontWeight: 700 }}>⚡ max 5,000</span> : '(max 500)'}
+            </label>
+            <input type="number" min={1} max={godMode ? 5000 : 500} value={qty} onChange={e => setQty(e.target.value)} style={s.input} />
           </div>
           <div>
             <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 5 }}>Label (optional)</label>
@@ -204,6 +278,9 @@ export default function App() {
               </button>
               <button onClick={handleDownload} style={{ background: '#0d0d14', border: '1px solid #1e1e2e', borderRadius: 4, padding: '11px 14px', color: '#888', fontSize: 13, cursor: 'pointer' }}>
                 ↓ CSV
+              </button>
+              <button onClick={handleAYCDDownload} style={{ background: '#0d0d14', border: '1px solid #e02020', borderRadius: 4, padding: '11px 14px', color: '#e02020', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>
+                ↓ AYCD
               </button>
             </>
           )}

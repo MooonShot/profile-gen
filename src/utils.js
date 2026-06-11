@@ -90,6 +90,60 @@ export function buildProfile({ tab, country, addresses, index, sepHouse, sepPref
   return { phone }
 }
 
+const AYCD_HEADERS = [
+  'Email Address','Profile Name','Only One Checkout','Name on Card','Card Type','Card Number',
+  'Expiration Month','Expiration Year','CVV','Same Billing/Shipping','Shipping Name','Shipping Phone',
+  'Shipping Address','Shipping Address 2','Shipping Address 3','Shipping Post Code','Shipping City',
+  'Shipping State','Shipping Country','Billing Name','Billing Phone','Billing Address',
+  'Billing Address 2','Billing Address 3','Billing Post Code','Billing City','Billing State',
+  'Billing Country','Size (Optional)'
+]
+
+const COUNTRY_ISO = { FR:'France', GB:'United Kingdom', DE:'Germany', US:'United States', ES:'Spain', IT:'Italy', NL:'Netherlands', BE:'Belgium' }
+
+export function profilesToAYCD(profiles, country) {
+  const countryName = COUNTRY_ISO[country] || country
+  const rows = profiles.map(p => {
+    const fullName = `${p.firstName || ''} ${p.lastName || ''}`.trim()
+    const phone = p.phone || (p.phonePrefix ? p.phonePrefix + p.phoneNumber : '')
+    const address = p.address || `${p.houseNumber || ''} ${p.street || ''}`.trim()
+    const email = `${(p.firstName||'user').toLowerCase()}.${(p.lastName||'').toLowerCase()}${randInt(1,999)}@gmail.com`
+    return [
+      email,           // Email Address
+      fullName,        // Profile Name
+      'false',         // Only One Checkout
+      fullName,        // Name on Card
+      '',              // Card Type
+      '',              // Card Number
+      '',              // Expiration Month
+      '',              // Expiration Year
+      '',              // CVV
+      'true',          // Same Billing/Shipping
+      fullName,        // Shipping Name
+      phone,           // Shipping Phone
+      address,         // Shipping Address
+      '',              // Shipping Address 2
+      '',              // Shipping Address 3
+      p.postcode || '',// Shipping Post Code
+      p.city || '',    // Shipping City
+      '',              // Shipping State
+      countryName,     // Shipping Country
+      fullName,        // Billing Name
+      phone,           // Billing Phone
+      address,         // Billing Address
+      '',              // Billing Address 2
+      '',              // Billing Address 3
+      p.postcode || '',// Billing Post Code
+      p.city || '',    // Billing City
+      '',              // Billing State
+      countryName,     // Billing Country
+      '',              // Size (Optional)
+    ]
+  })
+  const escape = v => `"${String(v).replace(/"/g, '""')}"`
+  return [AYCD_HEADERS.join(','), ...rows.map(r => r.map(escape).join(','))].join('\n')
+}
+
 export function profilesToCSV(profiles) {
   if (!profiles.length) return ''
   const keys = Object.keys(profiles[0])
