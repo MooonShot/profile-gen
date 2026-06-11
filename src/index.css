@@ -1,0 +1,21 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #08080d;
+  color: #d0d0e0;
+  font-family: 'Inter', system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #0d0d14; }
+::-webkit-scrollbar-thumb { background: #2a2a3e; border-radius: 3px; }
+
+input, select {
+  outline: none;
+}
+input:focus, select:focus {
+  border-color: #e02020 !important;
+}
+
+.mapboxgl-ctrl-logo { display: none !important; }
